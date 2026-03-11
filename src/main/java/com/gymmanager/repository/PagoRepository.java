@@ -22,4 +22,6 @@ public interface PagoRepository extends JpaRepository<Pago, Long> {
     // Pagos del mes actual
     @Query("SELECT p FROM Pago p WHERE MONTH(p.fechaPago) = MONTH(CURRENT_DATE) AND YEAR(p.fechaPago) = YEAR(CURRENT_DATE)")
     List<Pago> findPagosMesActual();
+
+
 }

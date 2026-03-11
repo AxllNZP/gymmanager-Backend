@@ -1,21 +1,26 @@
 package com.gymmanager.service.impl;
 
+import com.gymmanager.exception.ResourceNotFoundException;
+import com.gymmanager.exception.InvalidOperationException;
 import com.gymmanager.dto.Pago.PagoRequest;
 import com.gymmanager.dto.Pago.PagoResponse;
 import com.gymmanager.entity.*;
 import com.gymmanager.repository.*;
 import com.gymmanager.service.EmailService;
 import com.gymmanager.service.PagoService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import com.gymmanager.service.AuditLogService;
 
-import java.time.LocalDateTime;
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class PagoServiceImpl implements PagoService {
 
     private final PagoRepository pagoRepository;
@@ -28,21 +33,22 @@ public class PagoServiceImpl implements PagoService {
     @Override
     public PagoResponse registrar(PagoRequest request, String emailUsuario) {
 
-        Membresia membresia = membresiaRepository.findById(request.getMembresiaId())
-                .orElseThrow(() -> new RuntimeException("Membresía no encontrada"));
-
-        Cliente cliente = clienteRepository.findById(request.getClienteId())
-                .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
+        Membresia membresia = getMembresiaOrThrow(request.getMembresiaId());
+        Cliente cliente = getClienteOrThrow(request.getClienteId());
 
         Usuario usuarioRegistro = usuarioRepository.findByEmail(emailUsuario)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Usuario", "email", emailUsuario)
+                );
 
         double montoOriginal = membresia.getPlan().getPrecio();
         double descuento = request.getDescuento() != null ? request.getDescuento() : 0.0;
         double montoFinal = montoOriginal - descuento;
 
         if (montoFinal < 0) {
-            throw new RuntimeException("El descuento no puede ser mayor al precio del plan");
+            throw new InvalidOperationException(
+                    "El descuento no puede ser mayor al precio del plan"
+            );
         }
 
         Pago pago = new Pago();
@@ -59,8 +65,9 @@ public class PagoServiceImpl implements PagoService {
 
         Pago pagoGuardado = pagoRepository.save(pago);
 
-        // Enviar correo de confirmación de forma asíncrona
+        // envío de correo
         emailService.enviarConfirmacionPago(pagoGuardado);
+
         pagoGuardado.setCorreoEnviado(true);
         pagoRepository.save(pagoGuardado);
 
@@ -80,14 +87,18 @@ public class PagoServiceImpl implements PagoService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PagoResponse obtenerPorId(Long id) {
-        Pago pago = pagoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Pago no encontrado"));
+
+        Pago pago = getPagoOrThrow(id);
+
         return toResponse(pago);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<PagoResponse> listarTodos() {
+
         return pagoRepository.findAll()
                 .stream()
                 .map(this::toResponse)
@@ -95,9 +106,11 @@ public class PagoServiceImpl implements PagoService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<PagoResponse> listarPorCliente(Long clienteId) {
-        Cliente cliente = clienteRepository.findById(clienteId)
-                .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
+
+        Cliente cliente = getClienteOrThrow(clienteId);
+
         return pagoRepository.findByCliente(cliente)
                 .stream()
                 .map(this::toResponse)
@@ -105,7 +118,9 @@ public class PagoServiceImpl implements PagoService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<PagoResponse> listarPorMes() {
+
         return pagoRepository.findPagosMesActual()
                 .stream()
                 .map(this::toResponse)
@@ -114,16 +129,17 @@ public class PagoServiceImpl implements PagoService {
 
     @Override
     public void anular(Long id, String emailUsuario) {
-        Pago pago = pagoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Pago no encontrado"));
+
+        Pago pago = getPagoOrThrow(id);
 
         if (pago.getEstado() == Pago.EstadoPago.ANULADO) {
-            throw new RuntimeException("El pago ya está anulado");
+            throw new InvalidOperationException("El pago ya está anulado");
         }
 
         pago.setEstado(Pago.EstadoPago.ANULADO);
+
         pagoRepository.save(pago);
-        // Al final del método anular(), antes del cierre, agrega:
+
         auditLogService.registrar(
                 emailUsuario,
                 "ANULACION_PAGO",
@@ -135,9 +151,10 @@ public class PagoServiceImpl implements PagoService {
         );
     }
 
-
     private PagoResponse toResponse(Pago p) {
+
         PagoResponse response = new PagoResponse();
+
         response.setId(p.getId());
         response.setMembresiaId(p.getMembresia().getId());
         response.setClienteId(p.getCliente().getId());
@@ -153,8 +170,29 @@ public class PagoServiceImpl implements PagoService {
         response.setCorreoEnviado(p.getCorreoEnviado());
         response.setUsuarioRegistroNombre(p.getUsuarioRegistro().getNombre());
         response.setFechaPago(p.getFechaPago());
-        return response;
 
+        return response;
+    }
+
+    private Pago getPagoOrThrow(Long id) {
+        return pagoRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Pago", "id", id)
+                );
+    }
+
+    private Cliente getClienteOrThrow(Long id) {
+        return clienteRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Cliente", "id", id)
+                );
+    }
+
+    private Membresia getMembresiaOrThrow(Long id) {
+        return membresiaRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Membresia", "id", id)
+                );
     }
 
 }

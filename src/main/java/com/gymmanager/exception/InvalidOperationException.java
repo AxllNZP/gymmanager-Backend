@@ -1,4 +1,10 @@
 package com.gymmanager.exception;
 
-public class InvalidOperationException {
+import org.springframework.http.HttpStatus;
+
+public class InvalidOperationException extends BaseException {
+
+    public InvalidOperationException(String message) {
+        super(message, HttpStatus.BAD_REQUEST);
+    }
 }

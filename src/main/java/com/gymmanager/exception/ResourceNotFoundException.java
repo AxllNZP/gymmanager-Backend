@@ -1,4 +1,10 @@
 package com.gymmanager.exception;
 
-public class ResourceNotFoundException {
+import org.springframework.http.HttpStatus;
+
+public class ResourceNotFoundException extends BaseException {
+
+    public ResourceNotFoundException(String resource, String field, Object value) {
+        super(resource + " no encontrado con " + field + ": " + value, HttpStatus.NOT_FOUND);
+    }
 }

@@ -4,6 +4,8 @@ import com.gymmanager.dto.Usuario.UsuarioRequest;
 import com.gymmanager.dto.Usuario.UsuarioResponse;
 import com.gymmanager.entity.Role;
 import com.gymmanager.entity.Usuario;
+import com.gymmanager.exception.DuplicateResourceException;
+import com.gymmanager.exception.ResourceNotFoundException;
 import com.gymmanager.repository.RoleRepository;
 import com.gymmanager.repository.UsuarioRepository;
 import com.gymmanager.service.UsuarioService;
@@ -24,12 +26,18 @@ public class UsuarioServiceImpl implements UsuarioService {
 
     @Override
     public UsuarioResponse crear(UsuarioRequest request) {
+
+        // Verificar email duplicado
         if (usuarioRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("El email ya está registrado");
+            throw new DuplicateResourceException(
+                    "Ya existe un usuario con el email: " + request.getEmail()
+            );
         }
 
         Role role = roleRepository.findByName(Role.RoleName.valueOf(request.getRole()))
-                .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Rol", "name", request.getRole())
+                );
 
         Usuario usuario = new Usuario();
         usuario.setNombre(request.getNombre());
@@ -38,11 +46,14 @@ public class UsuarioServiceImpl implements UsuarioService {
         usuario.setRole(role);
         usuario.setActivo(true);
 
-        return toResponse(usuarioRepository.save(usuario));
+        Usuario saved = usuarioRepository.save(usuario);
+
+        return toResponse(saved);
     }
 
     @Override
     public List<UsuarioResponse> listarTodos() {
+
         return usuarioRepository.findAll()
                 .stream()
                 .map(this::toResponse)
@@ -51,53 +62,80 @@ public class UsuarioServiceImpl implements UsuarioService {
 
     @Override
     public UsuarioResponse obtenerPorId(Long id) {
+
         Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Usuario", "id", id)
+                );
+
         return toResponse(usuario);
     }
 
     @Override
     public UsuarioResponse actualizar(Long id, UsuarioRequest request) {
-        Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        if (!usuario.getEmail().equals(request.getEmail()) &&
-                usuarioRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("El email ya está en uso");
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Usuario", "id", id)
+                );
+
+        // Validar email duplicado
+        if (!usuario.getEmail().equals(request.getEmail())
+                && usuarioRepository.existsByEmail(request.getEmail())) {
+
+            throw new DuplicateResourceException(
+                    "El email ya está en uso: " + request.getEmail()
+            );
         }
 
         Role role = roleRepository.findByName(Role.RoleName.valueOf(request.getRole()))
-                .orElseThrow(() -> new RuntimeException("Rol no encontrado"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Rol", "name", request.getRole())
+                );
 
         usuario.setNombre(request.getNombre());
         usuario.setEmail(request.getEmail());
         usuario.setRole(role);
 
+        // Actualizar password solo si se envía
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             usuario.setPassword(passwordEncoder.encode(request.getPassword()));
         }
 
-        return toResponse(usuarioRepository.save(usuario));
+        Usuario updated = usuarioRepository.save(usuario);
+
+        return toResponse(updated);
     }
 
     @Override
     public void desactivar(Long id) {
+
         Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Usuario", "id", id)
+                );
+
         usuario.setActivo(false);
+
         usuarioRepository.save(usuario);
     }
 
     @Override
     public void desbloquear(Long id) {
+
         Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Usuario", "id", id)
+                );
+
         usuario.setIntentosFallidos(0);
         usuario.setBloqueadoHasta(null);
+
         usuarioRepository.save(usuario);
     }
 
     private UsuarioResponse toResponse(Usuario u) {
+
         UsuarioResponse response = new UsuarioResponse();
         response.setId(u.getId());
         response.setNombre(u.getNombre());
@@ -105,6 +143,7 @@ public class UsuarioServiceImpl implements UsuarioService {
         response.setRole(u.getRole().getName().name());
         response.setActivo(u.getActivo());
         response.setCreatedAt(u.getCreatedAt());
+
         return response;
     }
 }

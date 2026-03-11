@@ -1,5 +1,7 @@
 package com.gymmanager.service;
-
+import com.gymmanager.exception.ResourceNotFoundException;
+import com.gymmanager.exception.DuplicateResourceException;
+import com.gymmanager.exception.InvalidOperationException;
 import com.gymmanager.dto.DashboardResponse;
 import com.gymmanager.dto.Membresia.MembresiaResponse;
 import com.gymmanager.dto.Pago.PagoResponse;
