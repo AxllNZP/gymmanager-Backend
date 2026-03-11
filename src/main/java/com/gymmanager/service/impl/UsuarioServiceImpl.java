@@ -1,4 +1,4 @@
-package com.gymmanager.service;
+package com.gymmanager.service.impl;
 
 import com.gymmanager.dto.Usuario.UsuarioRequest;
 import com.gymmanager.dto.Usuario.UsuarioResponse;
@@ -6,6 +6,7 @@ import com.gymmanager.entity.Role;
 import com.gymmanager.entity.Usuario;
 import com.gymmanager.repository.RoleRepository;
 import com.gymmanager.repository.UsuarioRepository;
+import com.gymmanager.service.UsuarioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
