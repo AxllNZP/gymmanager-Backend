@@ -12,6 +12,7 @@ import com.gymmanager.service.UsuarioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,6 +26,7 @@ public class UsuarioServiceImpl implements UsuarioService {
     private final PasswordEncoder passwordEncoder;
 
     @Override
+    @Transactional
     public UsuarioResponse crear(UsuarioRequest request) {
 
         // Verificar email duplicado
@@ -72,6 +74,7 @@ public class UsuarioServiceImpl implements UsuarioService {
     }
 
     @Override
+    @Transactional
     public UsuarioResponse actualizar(Long id, UsuarioRequest request) {
 
         Usuario usuario = usuarioRepository.findById(id)
@@ -108,6 +111,7 @@ public class UsuarioServiceImpl implements UsuarioService {
     }
 
     @Override
+    @Transactional
     public void desactivar(Long id) {
 
         Usuario usuario = usuarioRepository.findById(id)
@@ -121,6 +125,7 @@ public class UsuarioServiceImpl implements UsuarioService {
     }
 
     @Override
+    @Transactional
     public void desbloquear(Long id) {
 
         Usuario usuario = usuarioRepository.findById(id)

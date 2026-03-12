@@ -53,7 +53,10 @@ public class AsistenciaServiceImpl implements AsistenciaService {
                 .anyMatch(a -> a.getFechaSalida() == null);
 
         if (tieneEntradaAbierta) {
-            throw new RuntimeException("El cliente ya tiene una entrada registrada hoy sin salida");
+            throw new InvalidOperationException(
+                    "El cliente ya tiene una entrada registrada hoy sin salida"+
+                    request.getClienteId()
+            );
         }
 
         Asistencia asistencia = new Asistencia();

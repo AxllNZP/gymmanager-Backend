@@ -6,17 +6,13 @@ import com.gymmanager.dto.Cliente.ClienteResponse;
 import com.gymmanager.dto.RenovacionRequest;
 
 import com.gymmanager.entity.*;
-
 import com.gymmanager.repository.*;
-
 import com.gymmanager.service.MembresiaService;
-
 import com.gymmanager.exception.ResourceNotFoundException;
 import com.gymmanager.exception.InvalidOperationException;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -32,6 +28,7 @@ public class MembresiaServiceImpl implements MembresiaService {
     private final PlanRepository planRepository;
 
     @Override
+    @Transactional
     public MembresiaResponse crear(MembresiaRequest request) {
 
         Cliente cliente = getClienteOrThrow(request.getClienteId());
@@ -65,6 +62,7 @@ public class MembresiaServiceImpl implements MembresiaService {
     }
 
     @Override
+    @Transactional
     public MembresiaResponse renovar(Long membresiaId, RenovacionRequest request) {
 
         Membresia membresiaAnterior = getMembresiaOrThrow(membresiaId);

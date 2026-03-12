@@ -11,6 +11,7 @@ import com.gymmanager.repository.MembresiaRepository;
 import com.gymmanager.service.ClienteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,6 +26,7 @@ public class ClienteServiceImpl implements ClienteService {
     private final MembresiaRepository membresiaRepository;
 
     @Override
+    @Transactional
     public ClienteResponse crear(ClienteRequest request) {
 
         if (clienteRepository.existsByDni(request.getDni())) {
@@ -76,6 +78,7 @@ public class ClienteServiceImpl implements ClienteService {
     }
 
     @Override
+    @Transactional
     public ClienteResponse actualizar(Long id, ClienteRequest request) {
 
         Cliente cliente = clienteRepository.findById(id)
@@ -115,6 +118,7 @@ public class ClienteServiceImpl implements ClienteService {
     }
 
     @Override
+    @Transactional
     public void desactivar(Long id) {
 
         Cliente cliente = clienteRepository.findById(id)
